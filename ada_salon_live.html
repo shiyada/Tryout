@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ada — Salon Management</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --cream:#F7F1E6; --card:#FCFAF4; --navy:#1C2333; --border:#E4DAC8;
+    --muted:#8A7F68; --text:#2B2620; --gold:#B08D57; --error:#B0453F;
+    --error-bg:#FBEAE8; --good:#6B8F71; --good-bg:#E9F0E6;
+    --maya:#C17A6F; --theo:#7A8B6E; --priya:#5C7A8A;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:'Inter',sans-serif; color:var(--text); background:#EDE6D6;
+    min-height:100vh;
+  }
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:#D8CCB4; border-radius:4px;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none; padding:0; margin:0; text-align:inherit; color:inherit;}
+  button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--gold); outline-offset:2px;
+  }
+  input, select{font-family:'Inter',sans-serif;}
+
+  .app-shell{
+    max-width:480px; margin:0 auto; background:var(--cream);
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  @media (min-width:641px){
+    body{padding:28px 0;}
+    .app-shell{
+      min-height:calc(100vh - 56px); border-radius:20px; overflow:hidden;
+      box-shadow:0 24px 70px rgba(28,35,51,0.18);
+    }
+  }
+
+  /* header */
+  header{padding:18px 16px 12px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--cream); z-index:5;}
+  .brand-row{display:flex; align-items:center; gap:10px;}
+  .pin-dot{width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 3px rgba(176,141,87,0.18); flex-shrink:0;}
+  .brand{font-family:'Fraunces',serif; font-size:24px; font-weight:700; line-height:1; color:var(--navy);}
+  .brand-sub{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:3px;}
+
+  /* content */
+  #content{flex:1; overflow-y:auto; padding:16px; padding-bottom:24px;}
+
+  .date-heading{font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--navy); margin-bottom:14px;}
+  .subheading{font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 8px;}
+
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .stat-card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:left;}
+  .stat-card.warn{border-color:#E4B9B4;}
+  .stat-value{font-family:'Fraunces',serif; font-size:22px; font-weight:700; color:var(--navy); margin-top:8px;}
+  .stat-label{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .stat-icon{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold);}
+  .stat-card.warn .stat-icon{color:var(--error);}
+
+  .list-stack{display:flex; flex-direction:column; gap:8px;}
+  .row-card{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;}
+  .dot-small{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .row-title{font-size:14px; font-weight:600; color:var(--navy);}
+  .row-meta{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .row-time{font-family:'IBM Plex Mono',monospace; font-size:12px; color:#6B6152; flex-shrink:0;}
+  .stock-badge-low{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--error); background:var(--error-bg); padding:3px 8px; border-radius:12px; flex-shrink:0;}
+  .empty-note{font-size:13px; color:var(--muted); padding:20px 4px; text-align:center;}
+
+  /* calendar */
+  .date-nav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;}
+  .nav-btn{width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--navy);}
+  .date-label{font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy); display:flex; align-items:center; gap:10px; flex:1; justify-content:center;}
+  .today-btn{font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; border:1px solid var(--gold); color:var(--gold); background:transparent; border-radius:20px; padding:3px 9px;}
+  .filter-row{display:flex; align-items:center; gap:8px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px;}
+  .chip{font-size:12.5px; font-weight:500; color:#6B6152; border:1px solid var(--border); background:#fff; border-radius:20px; padding:6px 12px; display:flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0;}
+  .chip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .chip-dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .count-label{margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); white-space:nowrap; flex-shrink:0;}
+
+  .grid-wrap{overflow-x:auto;}
+  .grid-inner{display:flex; position:relative;}
+  .time-rail{width:52px; flex-shrink:0; position:relative;}
+  .hour-mark{position:absolute; left:0; right:0; transform:translateY(-7px); font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted);}
+  .columns{display:grid; flex:1; gap:8px; margin-left:4px;}
+  .column-header{font-family:'Fraunces',serif; font-weight:600; font-size:13.5px; color:var(--navy); display:flex; align-items:center; gap:6px; padding-bottom:8px; border-bottom:2px solid; margin-bottom:4px;}
+  .column-body{position:relative; background:var(--card); border:1px solid var(--border); border-radius:8px; cursor:pointer;}
+  .rule-line{position:absolute; left:0; right:0; border-top:1px solid var(--border); pointer-events:none;}
+  .slip{position:absolute; left:5px; right:5px; background:#fff; border-radius:6px; border:none; border-left:3px solid; box-shadow:0 1px 2px rgba(28,35,51,0.08); padding:5px 8px; text-align:left; overflow:hidden;}
+  .slip-client{font-size:12px; font-weight:600; color:var(--navy); line-height:1.2;}
+  .slip-meta{font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--muted); margin-top:2px;}
+  .hint{text-align:center; font-size:11.5px; color:var(--muted); padding:10px 0 4px;}
+
+  /* search / add rows */
+  .search-row{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .search-box{flex:1; display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 12px;}
+  .search-box input{border:none; background:none; outline:none; font-size:14px; flex:1; color:var(--text);}
+  .add-btn{width:36px; height:36px; border-radius:10px; background:var(--navy); color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; line-height:1;}
+
+  .client-card,.staff-card{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;}
+  .avatar{width:36px; height:36px; border-radius:50%; background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:15px; flex-shrink:0;}
+  .client-spent{text-align:right; flex-shrink:0;}
+  .client-spent-value{font-size:13.5px; font-weight:600; color:var(--navy);}
+  .client-last{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px;}
+  .role-tag{font-size:11px; font-weight:500; margin-left:6px;}
+  .status-pill{font-family:'IBM Plex Mono',monospace; font-size:10.5px; border-radius:14px; padding:5px 10px; border:none; flex-shrink:0;}
+  .status-active{background:var(--good-bg); color:#4E7350;}
+  .status-inactive{background:#EFE8D8; color:var(--muted);}
+
+  .cart-stack{display:flex; flex-direction:column; gap:6px; margin-bottom:4px;}
+  .cart-row{display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 10px;}
+  .qty-btn{width:24px; height:24px; border-radius:6px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px;}
+  .qty-value{font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:500; min-width:18px; text-align:center;}
+  .trash-btn{border:none; background:none; color:var(--error); flex-shrink:0; margin-left:2px; font-size:16px;}
+  .totals-box{background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-top:6px;}
+  .total-row{display:flex; justify-content:space-between; font-size:13px; color:#6B6152; padding:3px 0;}
+  .total-row.final{font-size:15.5px; font-weight:700; color:var(--navy); border-top:1px solid var(--border); margin-top:4px; padding-top:8px;}
+
+  /* panel / overlay */
+  .overlay{position:fixed; inset:0; background:rgba(28,35,51,0.45); display:flex; align-items:flex-end; justify-content:center; z-index:30;}
+  .panel{background:var(--card); width:100%; max-width:440px; border-radius:16px 16px 0 0; padding:18px 20px 26px; max-height:86vh; overflow-y:auto; box-shadow:0 -8px 30px rgba(28,35,51,0.25);}
+  .panel-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .panel-title{font-family:'Fraunces',serif; font-size:18px; font-weight:700; color:var(--navy);}
+  .close-btn{border:none; background:none; color:var(--muted); font-size:22px; line-height:1;}
+  .label{display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:12px 0 6px;}
+  .input,.select{width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); font-size:14.5px; background:#fff; color:var(--text);}
+  .seg-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .seg-btn{flex:1 1 auto; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text); font-size:13.5px; font-weight:500;}
+  .seg-btn.active{color:#fff;}
+  .seg-btn-small{padding:6px 10px; border-radius:16px; border:1px solid var(--border); background:#fff; color:#6B6152; font-size:12px;}
+  .seg-btn-small.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .row2{display:flex; gap:12px;}
+  .error-text{color:var(--error); font-size:12.5px; margin-top:10px;}
+  .panel-actions{display:flex; gap:10px; margin-top:20px;}
+  .save-btn{flex:1; background:var(--navy); color:#fff; border:none; border-radius:10px; padding:12px 16px; font-size:14.5px; font-weight:600;}
+  .save-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .delete-btn{background:#fff; color:var(--error); border:1px solid #E4B9B4; border-radius:10px; padding:12px 16px; font-size:14.5px; font-weight:600;}
+  .color-dot{width:32px; height:32px; border-radius:50%; border:1px solid var(--border); cursor:pointer;}
+  .color-dot.active{border:3px solid var(--navy);}
+
+  /* bottom nav */
+  nav.bottom-nav{display:flex; justify-content:space-around; border-top:1px solid var(--border); background:var(--card); padding:8px 4px 10px;}
+  .nav-item{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; padding:6px; position:relative; flex:1; color:var(--muted);}
+  .nav-item.active{color:var(--navy); font-weight:600;}
+  .nav-icon{font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:1;}
+  .nav-label{font-size:9.5px;}
+  .nav-dot{position:absolute; top:-6px; width:4px; height:4px; border-radius:50%; background:var(--gold);}
+
+  /* api connection */
+  .api-pill{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em; color:var(--muted); border:1px solid var(--border); background:#fff; border-radius:14px; padding:5px 10px; flex-shrink:0;}
+  .api-pill.connected{color:#4E7350; border-color:#BFD8BE;}
+  .api-pill.error{color:var(--error); border-color:#E4B9B4;}
+  .banner{display:flex; align-items:center; gap:8px; background:var(--error-bg); color:var(--error); border:1px solid #E4B9B4; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-top:10px;}
+  .banner button{margin-left:auto; font-weight:600; text-decoration:underline; flex-shrink:0;}
+  .loading-note{text-align:center; color:var(--muted); font-size:13px; padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div class="brand-row">
+      <div class="pin-dot"></div>
+      <div style="flex:1;">
+        <div class="brand">Ada</div>
+        <div class="brand-sub" id="section-title">Overview</div>
+      </div>
+      <button class="api-pill" id="api-pill" onclick="openApiPanel()" title="API connection">⚙ API</button>
+    </div>
+    <div id="banner-root"></div>
+  </header>
+  <div id="content"></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+<div id="panel-root"></div>
+
+<script>
+/* ============================= config ============================= */
+// Change this if your Flask server runs elsewhere. On a phone, 127.0.0.1
+// means the phone itself — use your computer's LAN IP instead, e.g.
+// http://192.168.1.23:5000, and start Flask with app.run(host='0.0.0.0').
+let API_BASE = localStorage.getItem('ada_api_base') || 'http://127.0.0.1:5000';
+
+const DAY_START = 9*60, DAY_END = 19*60, PX_PER_MIN = 1.5, GRID_STEP = 30;
+const PALETTE = ['#C17A6F','#7A8B6E','#5C7A8A','#B08D57','#9C6ADE'];
+
+const TABS = [
+  {id:'dashboard', label:'Overview', icon:'◇'},
+  {id:'book', label:'Calendar', icon:'▦'},
+  {id:'clients', label:'Clients', icon:'○'},
+  {id:'staff', label:'Staff', icon:'◈'},
+  {id:'billing', label:'Billing', icon:'▤'},
+  {id:'inventory', label:'Inventory', icon:'▢'},
+];
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+let state = {
+  tab: 'dashboard',
+  calendarDate: todayISO(),
+  calendarStylist: 'all',
+  stylists: [],
+  services: [],
+  appointments: [],
+  inventory: [],
+  invoices: [],
+  clients: [],
+  dashboard: null,
+  panel: null,
+  loading: true,
+  connectionOk: null,
+  loadError: null,
+};
+
+/* ============================= helpers ============================= */
+function fmtTime(mins){
+  const h=Math.floor(mins/60), m=mins%60, period=h>=12?'PM':'AM', h12=h%12===0?12:h%12;
+  return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+}
+function fmtDateHeading(iso){
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+}
+function fmtDateShort(iso){
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString(undefined,{month:'short', day:'numeric'});
+}
+function addDaysISO(iso, delta){
+  const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10);
+}
+function rupee(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============================= API layer ============================= */
+async function apiFetch(path, options={}){
+  const res = await fetch(API_BASE + path, {
+    ...options,
+    headers: {'Content-Type':'application/json', ...(options.headers||{})},
+  });
+  let body = null;
+  try { body = await res.json(); } catch(e) { /* no body, e.g. 204 */ }
+  if(!res.ok){
+    const message = (body && body.error) ? body.error : `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+  return body;
+}
+const api = {
+  stylists: () => apiFetch('/stylists'),
+  createStylist: (data) => apiFetch('/stylists', {method:'POST', body:JSON.stringify(data)}),
+  updateStylist: (id, patch) => apiFetch(`/stylists/${id}`, {method:'PATCH', body:JSON.stringify(patch)}),
+
+  services: () => apiFetch('/services'),
+
+  inventory: () => apiFetch('/inventory'),
+  createInventory: (data) => apiFetch('/inventory', {method:'POST', body:JSON.stringify(data)}),
+  adjustStock: (id, delta) => apiFetch(`/inventory/${id}/adjust`, {method:'POST', body:JSON.stringify({delta})}),
+
+  appointments: (date) => apiFetch(`/appointments?date=${encodeURIComponent(date)}`),
+  createAppointment: (data) => apiFetch('/appointments', {method:'POST', body:JSON.stringify(data)}),
+  updateAppointment: (id, patch) => apiFetch(`/appointments/${id}`, {method:'PATCH', body:JSON.stringify(patch)}),
+  deleteAppointment: (id) => apiFetch(`/appointments/${id}`, {method:'DELETE'}),
+
+  invoices: () => apiFetch('/invoices'),
+  createInvoice: (data) => apiFetch('/invoices', {method:'POST', body:JSON.stringify(data)}),
+
+  clients: () => apiFetch('/clients'),
+  dashboard: () => apiFetch('/dashboard'),
+};
+
+/* ============================= boot ============================= */
+async function boot(){
+  document.getElementById('api-base-display') && (document.getElementById('api-base-display').value = API_BASE);
+  try{
+    const [stylists, services] = await Promise.all([api.stylists(), api.services()]);
+    state.stylists = stylists;
+    state.services = services;
+    state.connectionOk = true;
+  } catch(err){
+    state.connectionOk = false;
+    state.loadError = "Can't reach the Ada API at " + API_BASE + ". Check it's running, and tap the API pill to fix the address.";
+  }
+  await loadTab('dashboard');
+}
+
+/* ============================= tab loading ============================= */
+async function loadTab(tabId){
+  state.tab = tabId;
+  state.loading = true;
+  state.loadError = state.connectionOk===false ? state.loadError : null;
+  render();
+  if(state.connectionOk===false){ state.loading=false; render(); return; }
+
+  try{
+    if(tabId==='dashboard'){
+      state.dashboard = await api.dashboard();
+    } else if(tabId==='book'){
+      const [appts, stylists] = await Promise.all([api.appointments(state.calendarDate), api.stylists()]);
+      state.appointments = appts;
+      state.stylists = stylists;
+    } else if(tabId==='clients'){
+      state.clients = await api.clients();
+    } else if(tabId==='staff'){
+      state.stylists = await api.stylists();
+    } else if(tabId==='billing'){
+      const [invoices, stylists, inventory, services] = await Promise.all([api.invoices(), api.stylists(), api.inventory(), api.services()]);
+      state.invoices = invoices;
+      state.stylists = stylists;
+      state.inventory = inventory;
+      state.services = services;
+    } else if(tabId==='inventory'){
+      state.inventory = await api.inventory();
+    }
+    state.connectionOk = true;
+  } catch(err){
+    state.connectionOk = false;
+    state.loadError = err.message + " — check the Flask server is running at " + API_BASE + ".";
+  }
+  state.loading = false;
+  render();
+}
+
+async function reloadCalendar(){
+  try{
+    state.appointments = await api.appointments(state.calendarDate);
+  } catch(err){
+    state.loadError = err.message;
+  }
+  render();
+}
+
+/* ============================= render root ============================= */
+function render(){
+  document.getElementById('section-title').textContent = TABS.find(t=>t.id===state.tab).label;
+  const pill = document.getElementById('api-pill');
+  pill.className = 'api-pill ' + (state.connectionOk===true ? 'connected' : state.connectionOk===false ? 'error' : '');
+  pill.textContent = state.connectionOk===true ? '● API' : state.connectionOk===false ? '✕ API' : '⚙ API';
+
+  document.getElementById('banner-root').innerHTML = state.loadError
+    ? `<div class="banner"><span>${esc(state.loadError)}</span><button onclick="openApiPanel()">Fix</button></div>` : '';
+
+  renderNav();
+  const c = document.getElementById('content');
+  if(state.loading){ c.innerHTML = `<div class="loading-note">Loading…</div>`; renderPanel(); return; }
+
+  if(state.tab==='dashboard') c.innerHTML = renderDashboard();
+  else if(state.tab==='book') c.innerHTML = renderCalendar();
+  else if(state.tab==='clients') c.innerHTML = renderClients();
+  else if(state.tab==='staff') c.innerHTML = renderStaff();
+  else if(state.tab==='billing') c.innerHTML = renderBilling();
+  else if(state.tab==='inventory') c.innerHTML = renderInventory();
+  renderPanel();
+}
+
+function renderNav(){
+  document.getElementById('bottom-nav').innerHTML = TABS.map(t=>`
+    <button class="nav-item ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      <span class="nav-icon">${t.icon}</span>
+      <span class="nav-label">${t.label}</span>
+      ${state.tab===t.id?'<span class="nav-dot"></span>':''}
+    </button>`).join('');
+}
+function setTab(id){ loadTab(id); }
+
+/* ============================= API settings panel ============================= */
+function openApiPanel(){
+  state.panel = {type:'apiSettings', data:{url: API_BASE}};
+  render();
+}
+function saveApiBase(){
+  const val = state.panel.data.url.trim().replace(/\/$/, '');
+  if(!val) return;
+  API_BASE = val;
+  localStorage.setItem('ada_api_base', val);
+  closePanel();
+  boot();
+}
+
+/* ============================= dashboard ============================= */
+function renderDashboard(){
+  const dash = state.dashboard;
+  if(!dash) return `<div class="empty-note">No data yet.</div>`;
+  let html = `<div class="date-heading">${fmtDateHeading(dash.date)}</div>`;
+  html += `<div class="stat-grid">
+    <button class="stat-card" onclick="setTab('book')"><div class="stat-icon">▦</div><div class="stat-value">${dash.todays_bookings}</div><div class="stat-label">Today's bookings</div></button>
+    <button class="stat-card" onclick="setTab('billing')"><div class="stat-icon">▤</div><div class="stat-value">${rupee(dash.todays_revenue)}</div><div class="stat-label">Today's revenue</div></button>
+    <button class="stat-card ${dash.low_stock_count>0?'warn':''}" onclick="setTab('inventory')"><div class="stat-icon">!</div><div class="stat-value">${dash.low_stock_count}</div><div class="stat-label">Low stock items</div></button>
+    <button class="stat-card" onclick="setTab('staff')"><div class="stat-icon">◈</div><div class="stat-value">${dash.active_staff}</div><div class="stat-label">Active staff</div></button>
+  </div>`;
+
+  html += `<div class="subheading">Up next</div>`;
+  const upcoming = [...dash.upcoming_today].sort((a,b)=>a.start-b.start);
+  if(upcoming.length===0) html += `<div class="empty-note">Nothing on the books for today yet.</div>`;
+  html += `<div class="list-stack">${upcoming.slice(0,6).map(a=>{
+    const st = state.stylists.find(s=>s.id===a.stylist_id);
+    return `<div class="row-card">
+      <span class="dot-small" style="background:${st?st.color:'var(--gold)'}"></span>
+      <div style="flex:1; min-width:0;">
+        <div class="row-title">${esc(a.client)}</div>
+        <div class="row-meta">${esc(a.service)} · ${st?esc(st.name):''}</div>
+      </div>
+      <div class="row-time">${fmtTime(a.start)}</div>
+    </div>`;
+  }).join('')}</div>`;
+
+  if(dash.low_stock_items.length>0){
+    html += `<div class="subheading">Reorder soon</div><div class="list-stack">${dash.low_stock_items.map(p=>`
+      <div class="row-card">
+        <span style="color:var(--error); font-size:14px;">!</span>
+        <div style="flex:1;"><div class="row-title">${esc(p.name)}</div><div class="row-meta">${esc(p.category)}</div></div>
+        <div class="stock-badge-low">${p.stock} left</div>
+      </div>`).join('')}</div>`;
+  }
+  return html;
+}
+
+/* ============================= calendar ============================= */
+function renderCalendar(){
+  const date = state.calendarDate;
+  const visibleStylists = state.calendarStylist==='all' ? state.stylists : state.stylists.filter(s=>s.id===state.calendarStylist);
+  const dayAppts = state.appointments;
+  const totalHeight = (DAY_END-DAY_START)*PX_PER_MIN;
+  const hourMarks = [];
+  for(let t=DAY_START; t<=DAY_END; t+=60) hourMarks.push(t);
+
+  let html = `<div class="date-nav">
+    <button class="nav-btn" onclick="calNavDay(-1)">‹</button>
+    <div class="date-label">${fmtDateHeading(date)} ${date!==todayISO()?`<button class="today-btn" onclick="calToday()">Today</button>`:''}</div>
+    <button class="nav-btn" onclick="calNavDay(1)">›</button>
+  </div>`;
+
+  html += `<div class="filter-row">
+    <button class="chip ${state.calendarStylist==='all'?'active':''}" onclick="calFilter('all')">All chairs</button>
+    ${state.stylists.map(s=>`<button class="chip ${state.calendarStylist===s.id?'active':''}" style="${state.calendarStylist===s.id?`border-color:${s.color};color:#2B2620;`:''}" onclick="calFilter('${s.id}')"><span class="chip-dot" style="background:${s.color}"></span>${esc(s.name)}</button>`).join('')}
+    <div class="count-label">${dayAppts.length} booked</div>
+  </div>`;
+
+  if(visibleStylists.length===0){
+    html += `<div class="empty-note">No stylists yet — add one from the Staff tab.</div>`;
+    return html;
+  }
+
+  html += `<div class="grid-wrap"><div class="grid-inner" style="min-height:${totalHeight+20}px;">
+    <div class="time-rail">${hourMarks.map(t=>`<div class="hour-mark" style="top:${(t-DAY_START)*PX_PER_MIN}px">${fmtTime(t)}</div>`).join('')}</div>
+    <div class="columns" style="grid-template-columns:repeat(${visibleStylists.length}, minmax(150px,1fr));">
+      ${visibleStylists.map(s=>{
+        const slips = dayAppts.filter(a=>a.stylist_id===s.id).map(a=>`
+          <button class="slip" style="top:${(a.start-DAY_START)*PX_PER_MIN+2}px; height:${Math.max(a.duration*PX_PER_MIN-4,26)}px; border-left-color:${s.color};" onclick="event.stopPropagation(); openApptPanel('edit','${a.id}')">
+            <div class="slip-client">${esc(a.client)}</div>
+            <div class="slip-meta">${esc(a.service)} · ${fmtTime(a.start)}</div>
+          </button>`).join('');
+        const lines = hourMarks.map(t=>`<div class="rule-line" style="top:${(t-DAY_START)*PX_PER_MIN}px"></div>`).join('');
+        return `<div class="column">
+          <div class="column-header" style="border-bottom-color:${s.color}"><span class="chip-dot" style="background:${s.color}"></span>${esc(s.name)}</div>
+          <div class="column-body" style="height:${totalHeight}px" onclick="calSlotClick(event, '${s.id}')">${lines}${slips}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div></div>`;
+  html += `<div class="hint">Tap an empty line to book. Tap a slip to edit or cancel.</div>`;
+  return html;
+}
+function calNavDay(delta){ state.calendarDate = addDaysISO(state.calendarDate, delta); reloadCalendar(); }
+function calToday(){ state.calendarDate = todayISO(); reloadCalendar(); }
+function calFilter(id){ state.calendarStylist = id; render(); }
+function calSlotClick(e, stylistId){
+  if(e.target !== e.currentTarget) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const y = e.clientY - rect.top;
+  let minutes = DAY_START + Math.round(y/PX_PER_MIN/GRID_STEP)*GRID_STEP;
+  minutes = Math.min(Math.max(minutes, DAY_START), DAY_END-30);
+  openApptPanel('new', null, stylistId, minutes);
+}
+
+function openApptPanel(mode, id, stylistId, startMin){
+  if(mode==='new'){
+    const svc = state.services[0] || {name:'', duration:30};
+    state.panel = {type:'appointment', mode:'new', error:'', saving:false, data:{
+      stylist_id: stylistId, client:'', phone:'', service:svc.name, duration:svc.duration, start:startMin
+    }};
+  } else {
+    const a = state.appointments.find(x=>x.id===id);
+    state.panel = {type:'appointment', mode:'edit', error:'', saving:false, id, data:{...a}};
+  }
+  render();
+}
+function apptField(key, value){ state.panel.data[key] = value; renderPanel(); }
+function apptSetService(name, duration){
+  state.panel.data.service = name;
+  state.panel.data.duration = duration;
+  renderPanel();
+}
+async function saveAppointment(){
+  const p = state.panel, d = p.data;
+  if(!d.client || !d.client.trim()){ p.error = "Add the client's name before saving."; renderPanel(); return; }
+  p.saving = true; p.error=''; renderPanel();
+  try{
+    if(p.mode==='new'){
+      await api.createAppointment({
+        date: state.calendarDate, stylist_id: d.stylist_id, client: d.client, phone: d.phone||'',
+        service: d.service, start: d.start, duration: d.duration,
+      });
+    } else {
+      await api.updateAppointment(p.id, {
+        stylist_id: d.stylist_id, client: d.client, phone: d.phone||'',
+        service: d.service, start: d.start, duration: d.duration,
+      });
+    }
+    closePanel();
+    await reloadCalendar();
+  } catch(err){
+    p.saving = false; p.error = err.message; renderPanel();
+  }
+}
+async function deleteAppointment(){
+  const p = state.panel;
+  p.saving = true; renderPanel();
+  try{
+    await api.deleteAppointment(p.id);
+    closePanel();
+    await reloadCalendar();
+  } catch(err){
+    p.saving = false; p.error = err.message; renderPanel();
+  }
+}
+
+/* ============================= clients ============================= */
+let clientSearchQuery = '';
+function renderClients(){
+  const clients = state.clients.filter(c => c.name.toLowerCase().includes(clientSearchQuery.toLowerCase()));
+  let html = `<div class="search-row">
+    <div class="search-box"><span>⌕</span><input placeholder="Search clients" value="${esc(clientSearchQuery)}" oninput="clientSearchQuery=this.value; renderClientList();"></div>
+  </div>
+  <div class="empty-note" style="padding:4px 4px 16px; text-align:left;">Clients are built automatically from bookings and sales — book or bill someone once and they'll show up here.</div>`;
+  html += `<div id="client-list">${renderClientListInner(clients)}</div>`;
+  return html;
+}
+function renderClientListInner(clients){
+  if(clients.length===0) return `<div class="empty-note">No clients match that search.</div>`;
+  return `<div class="list-stack">${clients.map(c=>`
+    <div class="client-card">
+      <div class="avatar">${esc(c.name.charAt(0).toUpperCase())}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="row-title">${esc(c.name)}</div>
+        <div class="row-meta">${c.phone?esc(c.phone)+' · ':''}${c.visits} visit${c.visits===1?'':'s'}</div>
+      </div>
+      <div class="client-spent">
+        <div class="client-spent-value">${rupee(c.spent)}</div>
+        <div class="client-last">${c.last_visit?fmtDateShort(c.last_visit):'—'}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function renderClientList(){
+  const clients = state.clients.filter(c => c.name.toLowerCase().includes(clientSearchQuery.toLowerCase()));
+  document.getElementById('client-list').innerHTML = renderClientListInner(clients);
+}
+
+/* ============================= staff ============================= */
+function renderStaff(){
+  let html = `<div class="search-row"><div class="subheading" style="margin:0;">${state.stylists.length} team members</div><button class="add-btn" onclick="openStaffPanel()">+</button></div>`;
+  html += `<div class="list-stack">${state.stylists.map(s=>`
+    <div class="staff-card">
+      <div class="avatar" style="background:${s.color}">${esc(s.name.charAt(0))}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="row-title">${esc(s.name)} <span class="role-tag" style="color:${s.color}">${esc(s.role||'')}</span></div>
+        <div class="row-meta">${esc(s.hours||'')}</div>
+      </div>
+      <button class="status-pill ${s.active?'status-active':'status-inactive'}" onclick="toggleStaffActive('${s.id}')">${s.active?'Active':'Off'}</button>
+    </div>`).join('')}</div>`;
+  return html;
+}
+async function toggleStaffActive(id){
+  const s = state.stylists.find(x=>x.id===id);
+  try{
+    const updated = await api.updateStylist(id, {active: !s.active});
+    state.stylists = state.stylists.map(x => x.id===id ? updated : x);
+    render();
+  } catch(err){ state.loadError = err.message; render(); }
+}
+function openStaffPanel(){
+  state.panel = {type:'staff', error:'', saving:false, data:{name:'', role:'', phone:'', hours:'', color:PALETTE[state.stylists.length % PALETTE.length]}};
+  render();
+}
+async function saveStaff(){
+  const p = state.panel, d = p.data;
+  if(!d.name || !d.name.trim()) return;
+  p.saving = true; renderPanel();
+  try{
+    const created = await api.createStylist(d);
+    state.stylists.push(created);
+    closePanel();
+    render();
+  } catch(err){ p.saving=false; p.error = err.message; renderPanel(); }
+}
+
+/* ============================= billing ============================= */
+function renderBilling(){
+  let html = `<div class="search-row"><div class="subheading" style="margin:0;">${state.invoices.length} invoices</div><button class="add-btn" onclick="openSalePanel()">+</button></div>`;
+  if(state.invoices.length===0) html += `<div class="empty-note">No sales recorded yet.</div>`;
+  html += `<div class="list-stack">${state.invoices.map(inv=>{
+    const s = state.stylists.find(st=>st.id===inv.staff_id);
+    return `<div class="row-card">
+      <span style="color:var(--gold);">▤</span>
+      <div style="flex:1; min-width:0;">
+        <div class="row-title">${esc(inv.client)}</div>
+        <div class="row-meta">${fmtDateShort(inv.date)} · ${s?esc(s.name):'—'} · ${esc(inv.payment)} · ${inv.items.length} item${inv.items.length===1?'':'s'}</div>
+      </div>
+      <div class="client-spent-value">${rupee(inv.total)}</div>
+    </div>`;
+  }).join('')}</div>`;
+  return html;
+}
+function openSalePanel(){
+  state.panel = {type:'sale', error:'', saving:false, data:{client:'', phone:'', staff_id:state.stylists[0]?.id||'', payment:'Cash', items:[]}};
+  render();
+}
+function saleField(key, value){ state.panel.data[key] = value; renderPanel(); }
+function saleAddItem(name, price){
+  const items = state.panel.data.items;
+  const existing = items.find(it=>it.name===name);
+  if(existing) existing.qty += 1;
+  else items.push({name, price, qty:1});
+  renderPanel();
+}
+function saleChangeQty(name, delta){
+  const d = state.panel.data;
+  d.items = d.items.map(it => it.name===name ? {...it, qty: Math.max(1, it.qty+delta)} : it);
+  renderPanel();
+}
+function saleRemoveItem(name){
+  state.panel.data.items = state.panel.data.items.filter(it=>it.name!==name);
+  renderPanel();
+}
+async function completeSale(){
+  const p = state.panel, d = p.data;
+  if(!d.client || !d.client.trim() || d.items.length===0) return;
+  p.saving = true; p.error=''; renderPanel();
+  try{
+    const invoice = await api.createInvoice({
+      client: d.client, phone: d.phone||'', staff_id: d.staff_id, payment: d.payment,
+      items: d.items.map(it=>({name:it.name, qty:it.qty, price:it.price})),
+    });
+    state.invoices.unshift(invoice);
+    closePanel();
+    state.inventory = await api.inventory().catch(()=>state.inventory);
+    render();
+  } catch(err){ p.saving=false; p.error = err.message; renderPanel(); }
+}
+
+/* ============================= inventory ============================= */
+function renderInventory(){
+  const sorted = [...state.inventory].sort((a,b)=> (a.stock<=a.reorder?-1:1) - (b.stock<=b.reorder?-1:1));
+  let html = `<div class="search-row"><div class="subheading" style="margin:0;">${state.inventory.length} products</div><button class="add-btn" onclick="openProductPanel()">+</button></div>`;
+  html += `<div class="list-stack" id="inv-list">${renderInventoryRows(sorted)}</div>`;
+  return html;
+}
+function renderInventoryRows(list){
+  if(list.length===0) return `<div class="empty-note">No products yet.</div>`;
+  return list.map(p=>{
+    const low = p.stock <= p.reorder;
+    return `<div class="row-card">
+      <span class="dot-small" style="background:${low?'var(--error)':'var(--good)'}"></span>
+      <div style="flex:1; min-width:0;">
+        <div class="row-title">${esc(p.name)}</div>
+        <div class="row-meta">${esc(p.category)} · ${rupee(p.price)}</div>
+      </div>
+      <button class="qty-btn" onclick="adjustStock('${p.id}',-1)">–</button>
+      <div class="qty-value" style="${low?'color:var(--error);':''}">${p.stock}</div>
+      <button class="qty-btn" onclick="adjustStock('${p.id}',1)">+</button>
+    </div>`;
+  }).join('');
+}
+async function adjustStock(id, delta){
+  try{
+    const updated = await api.adjustStock(id, delta);
+    state.inventory = state.inventory.map(p => p.id===id ? updated : p);
+    const sorted = [...state.inventory].sort((a,b)=> (a.stock<=a.reorder?-1:1) - (b.stock<=b.reorder?-1:1));
+    document.getElementById('inv-list').innerHTML = renderInventoryRows(sorted);
+  } catch(err){ state.loadError = err.message; render(); }
+}
+function openProductPanel(){
+  state.panel = {type:'product', error:'', saving:false, data:{name:'', category:'Retail', stock:0, reorder:5, price:0}};
+  render();
+}
+async function saveProduct(){
+  const p = state.panel, d = p.data;
+  if(!d.name || !d.name.trim()) return;
+  p.saving = true; renderPanel();
+  try{
+    const created = await api.createInventory({
+      name:d.name, category:d.category, stock:Number(d.stock)||0, reorder:Number(d.reorder)||5, price:Number(d.price)||0,
+    });
+    state.inventory.push(created);
+    closePanel();
+    render();
+  } catch(err){ p.saving=false; p.error = err.message; renderPanel(); }
+}
+
+/* ============================= panel (slide-up modal) ============================= */
+function closePanel(){ state.panel = null; render(); }
+
+function renderPanel(){
+  const root = document.getElementById('panel-root');
+  if(!state.panel){ root.innerHTML = ''; return; }
+  const p = state.panel;
+  let title = '', body = '';
+
+  if(p.type==='apiSettings'){
+    title = 'API connection';
+    body = `
+      <label class="label">Flask server URL</label>
+      <input class="input" value="${esc(p.data.url)}" oninput="state.panel.data.url=this.value" placeholder="http://127.0.0.1:5000">
+      <div class="error-text" style="color:var(--muted); margin-top:10px;">
+        Running Flask on your computer and opening this page on your phone? Use your computer's LAN IP instead of 127.0.0.1 — e.g. http://192.168.1.23:5000 — and start Flask with <code>app.run(host='0.0.0.0')</code>.
+      </div>
+      <div class="panel-actions"><button class="save-btn" onclick="saveApiBase()">Connect</button></div>`;
+  }
+  else if(p.type==='appointment'){
+    title = p.mode==='new' ? 'New booking' : 'Edit booking';
+    const d = p.data;
+    body = `
+      <label class="label">Client name</label>
+      <input class="input" value="${esc(d.client||'')}" oninput="apptField('client', this.value)" placeholder="Full name">
+      <label class="label">Phone</label>
+      <input class="input" value="${esc(d.phone||'')}" oninput="apptField('phone', this.value)" placeholder="Optional">
+      <label class="label">Stylist</label>
+      <div class="seg-row">${state.stylists.map(s=>`<button class="seg-btn ${d.stylist_id===s.id?'active':''}" style="${d.stylist_id===s.id?`background:${s.color};border-color:${s.color};`:''}" onclick="apptField('stylist_id','${s.id}')">${esc(s.name)}</button>`).join('')}</div>
+      <label class="label">Service</label>
+      <div class="seg-row">${state.services.map(svc=>`<button class="seg-btn-small ${d.service===svc.name?'active':''}" onclick="apptSetService('${esc(svc.name)}', ${svc.duration})">${esc(svc.name)}</button>`).join('')}</div>
+      <div class="row2">
+        <div style="flex:1;">
+          <label class="label">Start time</label>
+          <select class="select" onchange="apptField('start', Number(this.value))">${timeOptions(d.start)}</select>
+        </div>
+        <div style="flex:1;">
+          <label class="label">Duration</label>
+          <select class="select" onchange="apptField('duration', Number(this.value))">
+            ${[15,20,30,45,60,90,120,150,180].map(m=>`<option value="${m}" ${d.duration===m?'selected':''}>${m} min</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${p.error?`<div class="error-text">${esc(p.error)}</div>`:''}
+      <div class="panel-actions">
+        ${p.mode==='edit'?`<button class="delete-btn" ${p.saving?'disabled':''} onclick="deleteAppointment()">Cancel booking</button>`:''}
+        <button class="save-btn" ${p.saving?'disabled':''} onclick="saveAppointment()">${p.saving?'Saving…':(p.mode==='new'?'Book slot':'Save changes')}</button>
+      </div>`;
+  }
+  else if(p.type==='staff'){
+    title = 'Add staff member';
+    const d = p.data;
+    body = `
+      <label class="label">Name</label>
+      <input class="input" value="${esc(d.name)}" oninput="state.panel.data.name=this.value" placeholder="Full name">
+      <label class="label">Role</label>
+      <input class="input" value="${esc(d.role)}" oninput="state.panel.data.role=this.value" placeholder="e.g. Stylist">
+      <label class="label">Phone</label>
+      <input class="input" value="${esc(d.phone)}" oninput="state.panel.data.phone=this.value" placeholder="Optional">
+      <label class="label">Working hours</label>
+      <input class="input" value="${esc(d.hours)}" oninput="state.panel.data.hours=this.value" placeholder="e.g. 9:00 AM – 6:00 PM">
+      <label class="label">Chair color</label>
+      <div class="seg-row">${PALETTE.map(c=>`<button class="color-dot ${d.color===c?'active':''}" style="background:${c}" onclick="state.panel.data.color='${c}'; renderPanel();"></button>`).join('')}</div>
+      ${p.error?`<div class="error-text">${esc(p.error)}</div>`:''}
+      <div class="panel-actions"><button class="save-btn" ${p.saving?'disabled':''} onclick="saveStaff()">${p.saving?'Saving…':'Add to team'}</button></div>`;
+  }
+  else if(p.type==='sale'){
+    title = 'New sale';
+    const d = p.data;
+    const subtotal = d.items.reduce((s,it)=>s+it.price*it.qty,0);
+    const tax = Math.round(subtotal*0.05*100)/100;
+    const total = subtotal+tax;
+    body = `
+      <label class="label">Client name</label>
+      <input class="input" value="${esc(d.client)}" oninput="saleField('client', this.value)" placeholder="Full name">
+      <label class="label">Phone</label>
+      <input class="input" value="${esc(d.phone)}" oninput="saleField('phone', this.value)" placeholder="Optional">
+      <label class="label">Stylist</label>
+      <div class="seg-row">${state.stylists.map(s=>`<button class="seg-btn ${d.staff_id===s.id?'active':''}" style="${d.staff_id===s.id?`background:${s.color};border-color:${s.color};`:''}" onclick="saleField('staff_id','${s.id}')">${esc(s.name)}</button>`).join('')}</div>
+      <label class="label">Services</label>
+      <div class="seg-row">${state.services.map(svc=>`<button class="seg-btn-small" onclick="saleAddItem('${esc(svc.name)}', ${svc.price})">${esc(svc.name)} · ${rupee(svc.price)}</button>`).join('')}</div>
+      <label class="label">Retail products</label>
+      <div class="seg-row">${state.inventory.filter(p=>p.stock>0).map(p=>`<button class="seg-btn-small" onclick="saleAddItem('${esc(p.name)}', ${p.price})">${esc(p.name)} · ${rupee(p.price)}</button>`).join('')}</div>
+      ${d.items.length>0?`
+        <label class="label">Cart</label>
+        <div class="cart-stack">${d.items.map(it=>`
+          <div class="cart-row">
+            <div style="flex:1; min-width:0;"><div class="row-title">${esc(it.name)}</div><div class="row-meta">${rupee(it.price)} each</div></div>
+            <button class="qty-btn" onclick="saleChangeQty('${esc(it.name)}',-1)">–</button>
+            <div class="qty-value">${it.qty}</div>
+            <button class="qty-btn" onclick="saleChangeQty('${esc(it.name)}',1)">+</button>
+            <button class="trash-btn" onclick="saleRemoveItem('${esc(it.name)}')">×</button>
+          </div>`).join('')}</div>
+        <label class="label">Payment method</label>
+        <div class="seg-row">${['Cash','Card','UPI'].map(pm=>`<button class="seg-btn-small ${d.payment===pm?'active':''}" onclick="saleField('payment','${pm}')">${pm}</button>`).join('')}</div>
+        <div class="totals-box">
+          <div class="total-row"><span>Subtotal</span><span>${rupee(subtotal)}</span></div>
+          <div class="total-row"><span>GST (5%)</span><span>${rupee(tax)}</span></div>
+          <div class="total-row final"><span>Total</span><span>${rupee(total)}</span></div>
+        </div>`:''}
+      ${p.error?`<div class="error-text">${esc(p.error)}</div>`:''}
+      <div class="panel-actions">
+        <button class="save-btn" ${(p.saving||!d.client.trim()||d.items.length===0)?'disabled':''} onclick="completeSale()">${p.saving?'Saving…':'Complete sale'}</button>
+      </div>`;
+  }
+  else if(p.type==='product'){
+    title = 'Add product';
+    const d = p.data;
+    body = `
+      <label class="label">Name</label>
+      <input class="input" value="${esc(d.name)}" oninput="state.panel.data.name=this.value" placeholder="Product name">
+      <label class="label">Category</label>
+      <div class="seg-row">${['Retail','Backbar','Supplies'].map(c=>`<button class="seg-btn-small ${d.category===c?'active':''}" onclick="state.panel.data.category='${c}'; renderPanel();">${c}</button>`).join('')}</div>
+      <div class="row2">
+        <div style="flex:1;"><label class="label">Starting stock</label><input class="input" type="number" value="${d.stock}" oninput="state.panel.data.stock=this.value"></div>
+        <div style="flex:1;"><label class="label">Reorder at</label><input class="input" type="number" value="${d.reorder}" oninput="state.panel.data.reorder=this.value"></div>
+      </div>
+      <label class="label">Price</label>
+      <input class="input" type="number" value="${d.price}" oninput="state.panel.data.price=this.value">
+      ${p.error?`<div class="error-text">${esc(p.error)}</div>`:''}
+      <div class="panel-actions"><button class="save-btn" ${p.saving?'disabled':''} onclick="saveProduct()">${p.saving?'Saving…':'Add product'}</button></div>`;
+  }
+
+  root.innerHTML = `<div class="overlay" onclick="closePanel()">
+    <div class="panel" onclick="event.stopPropagation()">
+      <div class="panel-header"><div class="panel-title">${title}</div><button class="close-btn" onclick="closePanel()">×</button></div>
+      ${body}
+    </div>
+  </div>`;
+}
+
+function timeOptions(selected){
+  let opts = '';
+  for(let i=0; i < (DAY_END-DAY_START)/GRID_STEP; i++){
+    const t = DAY_START + i*GRID_STEP;
+    opts += `<option value="${t}" ${t===selected?'selected':''}>${fmtTime(t)}</option>`;
+  }
+  return opts;
+}
+
+boot();
+</script>
+</body>
+</html>
